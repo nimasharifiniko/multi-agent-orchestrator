@@ -10,13 +10,15 @@ from src.reviewer import review_draft
 
 
 MAX_ITERATIONS = 3
+QUALITY_THRESHOLD = 7
 
 
 class Orchestrator:
     """Coordinates the Researcher, Writer, and Reviewer agents with feedback loops."""
 
-    def __init__(self, max_iterations: int = MAX_ITERATIONS):
+    def __init__(self, max_iterations: int = MAX_ITERATIONS, quality_threshold: int = QUALITY_THRESHOLD):
         self.max_iterations = max_iterations
+        self.quality_threshold = quality_threshold
 
     def run(self, topic: str) -> WorkflowState:
         """
@@ -33,6 +35,7 @@ class Orchestrator:
         print("\n" + "=" * 60)
         print(f"🚀 ORCHESTRATOR: Starting workflow for topic:")
         print(f"   '{topic}'")
+        print(f"   Quality Threshold: {self.quality_threshold}/10")
         print("=" * 60 + "\n")
 
         # === STEP 1: RESEARCH ===
@@ -78,17 +81,20 @@ class Orchestrator:
                 print(f"\n❌ ORCHESTRATOR: {state.error}")
                 return state
 
-            # If approved, we are done
-            if state.review.approved:
+            # Decision is based on the orchestrator's quality threshold
+            meets_standard = state.review.quality_score >= self.quality_threshold
+
+            # If it meets the standard, we are done
+            if meets_standard:
                 state.status = WorkflowStatus.COMPLETED
                 state.final_output = state.draft.full_text
                 print(f"\n✅ ORCHESTRATOR: Draft APPROVED at iteration {iteration}.")
-                print(f"   Final Quality Score: {state.review.quality_score}/10")
+                print(f"   Final Quality Score: {state.review.quality_score}/10 (Threshold: {self.quality_threshold})")
                 return state
 
             # If not approved AND we still have iterations left, revise
             if iteration < self.max_iterations:
-                print(f"⚠️ ORCHESTRATOR: Draft NOT approved. Sending back to Writer for revision...")
+                print(f"⚠️ ORCHESTRATOR: Score {state.review.quality_score}/10 < Threshold {self.quality_threshold}. Sending back to Writer...")
                 try:
                     state.status = WorkflowStatus.REVISING
                     state.draft = revise_draft(state.draft, state.review)
@@ -102,7 +108,6 @@ class Orchestrator:
         # === STEP 4: MAX ITERATIONS REACHED WITHOUT APPROVAL ===
         state.status = WorkflowStatus.COMPLETED
         state.final_output = state.draft.full_text
-        state.error = f"Max iterations ({self.max_iterations}) reached without full approval. Returning best draft."
+        state.error = f"Max iterations ({self.max_iterations}) reached. Best draft returned with score {state.review.quality_score}/10."
         print(f"\n⚠️ ORCHESTRATOR: {state.error}")
-        print(f"   Final Quality Score: {state.review.quality_score}/10")
         return state
