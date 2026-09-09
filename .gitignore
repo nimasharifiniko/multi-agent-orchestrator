@@ -1,12 +1,32 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 .venv/
-*.log
+env/
+venv/
+*.egg-info/
+dist/
+build/
 
-# Environment Variables (خیلی مهم: کلیدها نباید روی گیت بروند)
+# Environment Variables (CRITICAL)
 .env
 
 # IDE
 .vscode/
 .idea/
+*.swp
+
+# Logs & Cache
+*.log
+.pytest_cache/
+.streamlit/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local test outputs
+*.md.bakس
